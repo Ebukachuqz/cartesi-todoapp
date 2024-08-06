@@ -71,7 +71,7 @@ Here you can access the examples of dApp communication and resource consumption.
   ```
   data sample
   ```json
-    { "action": "create", "data": { "content": "Tahdhdlk" } }
+    { "action": "create", "data": { "content": "Build Cartesi DApp" } }
   ```
   hex sample
   ``` 
@@ -94,7 +94,7 @@ Here you can access the examples of dApp communication and resource consumption.
 * #### updateTodo
   ```js
     description — update an existing todo item.
-    param data — {owner: address, id: number, content?: string, completed?: boolean}
+    param data — { action: string, data: object}
   ```
   data sample
   ```json
@@ -114,13 +114,13 @@ Here you can access the examples of dApp communication and resource consumption.
     --rpc-url=http://127.0.0.1:8545 \
     --mnemonic-passphrase="test test test test test test test test test test test junk" \
     --mnemonic-index=0 \
-    --input='{ "action": "create", "data": { "id": 1, "content": "Build Cartesi DApp - Update", completed: true } }'
+    --input='{ "action": "update", "data": { "id": 1, "content": "Build Cartesi DApp - Update", completed: true } }'
     ```
 
 * #### deleteTodo
   ```js
     description — update an existing todo item.
-    param data — {owner: address, id: number, content?: string, completed?: boolean}
+    param data — { action: string, data: object}
   ```
   data sample
   ```json
