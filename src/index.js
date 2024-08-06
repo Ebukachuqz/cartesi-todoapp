@@ -1,116 +1,54 @@
-const { ethers } = require("ethers");
-const axios = require("axios");
-const TodoManager = require("./todoManager");
+import { ROLLUP_SERVER } from './utils/config';
+import { hexToString } from 'viem';
+import { RollupStateHandler } from './utils/rollupStateHandler';
+import { TodoController } from './controller/todoController';
 
-const rollup_server = process.env.ROLLUP_HTTP_SERVER_URL;
-console.log("HTTP rollup_server url is " + rollup_server);
+console.log("HTTP ROLLUP_SERVER url is ", ROLLUP_SERVER);
 
-function hex2str(hex) {
-  return ethers.toUtf8String(hex);
-}
-
-function str2hex(payload) {
-  return ethers.hexlify(ethers.toUtf8Bytes(payload));
-}
-
-const todoManager = new TodoManager();
 
 async function handle_advance(data) {
-  console.log("Received advance request data " + JSON.stringify(data));
+  console.log('Received advance raw data: ', JSON.stringify(data));
+  const rawPayload = hexToString(data.payload);
+  const payload = JSON.parse(rawPayload);
 
   const metadata = data["metadata"];
   const sender = metadata["msg_sender"];
-  const payload = data["payload"];
 
-  // Convert hex payload to string
-  const payloadStr = ethers.utils.toUtf8String(payload);
-
-  // Parse JSON string
-  let payloadJson;
-  try {
-    payloadJson = JSON.parse(payloadStr);
-  } catch (error) {
-    console.error("Error parsing JSON:", error);
-    const reportReq = await axios.post(rollup_server + "/report", {
-      payload: ethers.utils.hexlify(
-        ethers.utils.toUtf8Bytes("Error parsing JSON: " + error.message)
-      ),
-    });
-    return "reject";
+  console.log("metadata is ", metadata);
+  
+  switch (payload.action) {
+    case "create":
+      return await TodoController.createTodoAction(sender, payload.data)
+  
+    case "delete":
+      return await TodoController.deleteTodoAction(sender, payload.data);
+  
+    case "update":
+      return await TodoController.updateTodoAction(sender, payload.data);
+    default:
+      return await RollupStateHandler.handleReport({
+        error: "Invalid Action",
+      });
   }
-
-  let responseMessage;
-
-  if (payload.action === "create") {
-    const todo = todoManager.createTodo(sender, payload.content);
-    responseMessage = `Todo created: ${JSON.stringify(todo)}`;
-  } else if (payload.action === "delete") {
-    const success = todoManager.deleteTodo(sender, payload.id);
-    responseMessage = success
-      ? `Todo ${payload.id} deleted`
-      : `Todo ${payload.id} not found or not authorized`;
-  } else if (payload.action === "update") {
-    const todo = todoManager.updateTodo(
-      sender,
-      payload.id,
-      payload.content,
-      payload.completed
-    );
-    responseMessage = todo
-      ? `Todo updated: ${JSON.stringify(todo)}`
-      : `Todo ${payload.id} not found or not authorized`;
-  } else {
-    responseMessage = "Invalid action";
-  }
-
-  await axios.post(
-    rollup_server + "/notice",
-    {
-      payload: str2hex(responseMessage),
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  return "accept";
 }
 
 async function handle_inspect(data) {
-  console.log("Received inspect request data " + JSON.stringify(data));
+  console.log("Received inspect request data ", JSON.stringify(data));
 
-  const payload = data["payload"];
-  const route = hex2str(payload);
-
-  let responseObject;
+  const urlParams = hexToString(data.payload);
+  const urlParamsSplited = urlParams.split("/");
+  const route = urlParamsSplited[0];
 
   if (route === "all") {
-    responseObject = JSON.stringify(todoManager.getTodos(sender));
-  } else if (route.startsWith("id")) {
-    const id = parseInt(route.split("/").at(-1));
-    const todo = todoManager.getTodoById(id);
-    responseObject = todo
-      ? JSON.stringify(todo)
-      : "Todo not found or not authorized";
+    return await TodoController.getAllTodos()
+  } else if (route === "id") {
+    const id = parseInt(urlParamsSplited.at(-1));
+    return await TodoController.getTodoById(id);
   } else {
-    responseObject = "Invalid route";
+    return await RollupStateHandler.handleReport({
+      error: "Invalid Route",
+    });
   }
-
-  await axios.post(
-    rollup_server + "/report",
-    {
-      payload: str2hex(responseObject),
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  return "accept";
 }
 
 var handlers = {
@@ -118,26 +56,26 @@ var handlers = {
   inspect_state: handle_inspect,
 };
 
+var finish = { status: "accept" };
+
 (async () => {
   while (true) {
-    const finish_req = await axios.post(
-      rollup_server + "/finish",
-      { status: "accept" },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const finish_req = await fetch(ROLLUP_SERVER + "/finish", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "accept" }),
+    });
 
     console.log("Received finish status " + finish_req.status);
 
-    if (finish_req.status === 202) {
+    if (finish_req.status == 202) {
       console.log("No pending rollup request, trying again");
     } else {
-      const rollup_req = finish_req.data;
-      const handler = handlers[rollup_req["request_type"]];
-      await handler(rollup_req["data"]);
+      const rollup_req = await finish_req.json();
+      var handler = handlers[rollup_req["request_type"]];
+      finish["status"] = await handler(rollup_req["data"]);
     }
   }
 })();

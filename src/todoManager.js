@@ -1,46 +1,59 @@
-class TodoManager {
-  constructor() {
-    this.todos = [];
+class Todo {
+  constructor(id, owner, content, completed = false) {
+    this.id = id;
+    this.owner = owner;
+    this.content = content;
+    this.completed = completed;
   }
 
-  createTodo(sender, content) {
-    const id = this.todos.length + 1;
-    const todo = { id, sender, content, completed: false };
-    this.todos.push(todo);
-    return todo;
+  update(content, completed) {
+    if (content !== undefined) this.content = content;
+    if (completed !== undefined) this.completed = completed;
   }
 
-  getTodos(sender) {
-    return this.todos;
-    // .filter((todo) => todo.sender === sender);
-  }
-
-  getTodoById(sender, id) {
-    return this.todos.find((todo) => todo.id === id);
-    // && todo.sender === sender);
-  }
-
-  updateTodo(sender, id, content, completed) {
-    const todo = this.todos.find(
-      (todo) => todo.id === id && todo.sender === sender
-    );
-    if (todo) {
-      todo.content = content;
-      todo.completed = completed;
-    }
-    return todo;
-  }
-
-  deleteTodo(sender, id) {
-    const index = this.todos.findIndex(
-      (todo) => todo.id === id && todo.sender === sender
-    );
-    if (index !== -1) {
-      this.todos.splice(index, 1);
-      return true;
-    }
-    return false;
+  getData() {
+    return {
+      id: this.id,
+      owner: this.owner,
+      content: this.content,
+      completed: this.completed,
+    };
   }
 }
 
-module.exports = TodoManager;
+class TodoManager {
+  constructor() {
+    this.todos = [];
+    this.nextId = 1;
+  }
+
+  createTodo(owner, content) {
+    const newTodo = new Todo(this.nextId++, owner, content);
+    this.todos.push(newTodo);
+    return newTodo;
+  }
+
+  getTodoById(id) {
+    return this.todos.find(todo => todo.id === id);
+  }
+
+  getAllTodos() {
+    return this.todos;
+  }
+
+  deleteTodoById(owner, id) {
+    const index = this.todos.findIndex(todo => todo.id === id && todo.owner === owner);
+    if (index === -1) return false;
+    this.todos.splice(index, 1);
+    return true;
+  }
+
+  updateTodoById(owner, id, content, completed) {
+    const todo = this.getTodoById(owner, id);
+    if (!todo) return null;
+    todo.update(content, completed);
+    return todo;
+  }
+}
+
+export const todoManager = new TodoManager();
