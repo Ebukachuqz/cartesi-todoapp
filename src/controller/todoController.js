@@ -78,9 +78,9 @@ export class TodoController {
   }
 
   static async getAllTodos() {
-    const todo = todoManager.getAllTodos();
+    const todos = todoManager.getAllTodos();
     return await RollupStateHandler.inspectWrapper(() => {
-      return { ok: true, message: `Todos List`, data: todo };
+      return { ok: true, message: `Todos List`, data: todos };
     });
   }
 }

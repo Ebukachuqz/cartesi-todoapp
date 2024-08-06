@@ -49,8 +49,10 @@ class TodoManager {
   }
 
   updateTodoById(owner, id, content, completed) {
-    const todo = this.getTodoById(owner, id);
-    if (!todo) return false;
+    const todo = this.todos.find(
+      (todo) => todo.id === parseInt(id) && todo.owner === owner
+    );
+    if (!todo || todo === undefined) return false;
     todo.update(content, completed);
     return todo;
   }
