@@ -27,16 +27,16 @@ export class TodoController {
       });
 
     const deleteSuccess = todoManager.deleteTodoById(sender, data.id);
-    if (deleteSuccess) {
-      return await RollupStateHandler.advanceWrapper(() => {
-        return {
-          ok: true,
-          message: `Todo ${data.id} deleted`,
-        };
+    if (!deleteSuccess) {
+      return await RollupStateHandler.handleReport({
+        error: `Todo ${data.id} not found`,
       });
     }
-    return await RollupStateHandler.handleReport({
-      error: `Todo ${data.id} not found`,
+    return await RollupStateHandler.advanceWrapper(() => {
+      return {
+        ok: true,
+        message: `Todo ${data.id} deleted`,
+      };
     });
   }
 
@@ -45,27 +45,26 @@ export class TodoController {
       sender,
       data.id,
       data.content,
-      data.completedgetAllTodos
+      data.completed
     );
-    if (updatedTodo) {
-      return await RollupStateHandler.advanceWrapper(() => {
-        return {
-          ok: true,
-          message: `Todo Updated`,
-          data: updatedTodo.getData(),
-        };
+    if (!updatedTodo) {
+      return await RollupStateHandler.handleReport({
+        error: `Todo ${data.id} not found`,
       });
     }
-    return await RollupStateHandler.handleReport({
-      error: `Todo ${data.id} not found`,
+    return await RollupStateHandler.advanceWrapper(() => {
+      return {
+        ok: true,
+        message: `Todo Updated`,
+        data: updatedTodo.getData(),
+      };
     });
   }
 
   static async getTodoById(id) {
     const todo = todoManager.getTodoById(id);
-
     if (todo) {
-      return await RollupStateHandler.advanceWrapper(() => {
+      return await RollupStateHandler.inspectWrapper(() => {
         return {
           ok: true,
           message: `Todo Found`,
@@ -79,11 +78,9 @@ export class TodoController {
   }
 
   static async getAllTodos() {
-    const todo = todoManager.getAllTodos(id);
-    return {
-      ok: true,
-      message: `Todos List`,
-      data: todo,
-    };
+    const todo = todoManager.getAllTodos();
+    return await RollupStateHandler.inspectWrapper(() => {
+      return { ok: true, message: `Todos List`, data: todo };
+    });
   }
 }

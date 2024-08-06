@@ -50,7 +50,7 @@ class TodoManager {
 
   updateTodoById(owner, id, content, completed) {
     const todo = this.getTodoById(owner, id);
-    if (!todo) return null;
+    if (!todo) return false;
     todo.update(content, completed);
     return todo;
   }
