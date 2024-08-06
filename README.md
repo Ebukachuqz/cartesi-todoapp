@@ -119,7 +119,7 @@ Here you can access the examples of dApp communication and resource consumption.
 
 * #### deleteTodo
   ```js
-    description — update an existing todo item.
+    description — delete an existing todo item.
     param data — { action: string, data: object}
   ```
   data sample
